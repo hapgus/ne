@@ -10,7 +10,7 @@ const Auth = require('../middleware/auth');
 const Admin = require('../middleware/admin');
 const { check, body } = require('express-validator');
 const UserModel = require('../models/user.model');
-const ProductModel = require('../models/product.model');
+// const ProductModel = require('../models/product.model');
 const HttpError = require('../models/http-error');
 const upload = require('../middleware/file-upload')
 
