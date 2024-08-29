@@ -5,7 +5,10 @@ const whitelist = [
     'http://localhost:3001',
     'http://localhost:3002',
     'http://localhost:3003',
-    'https://product-guide-two.vercel.app/'
+    'https://product-guide-two.vercel.app/',
+    'https://product-guide-git-main-hapgus-af7f6394.vercel.app',
+    'https://product-guide-git-main-hapgus-af7f6394.vercel.app/'
+
 
 ]
 
