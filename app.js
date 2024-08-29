@@ -61,7 +61,6 @@ mongoose.connect(
   //RUN SERVER ----------------------------------------//
     .then(activateServer => {
       app.listen(process.env.PORT || 3005);
-    
       // Start the scheduled tasks  
     })
     .catch(err => {
