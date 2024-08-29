@@ -55,7 +55,8 @@ app.use((req, res, next) => {
   
   // initializeAWS();
 mongoose.connect(
-    `mongodb+srv://sfw-hapg-dev:hapgus2468@hapgus-cluster.bkiorpz.mongodb.net/hapgus-cluster?retryWrites=true&w=majority&appName=hapgus-cluster`
+
+    `mongodb+srv://${process.env.MONGO_USER}:${process.env.MONGO_PASSWORD}@${process.env.MONGO_CLUSTER}.bkiorpz.mongodb.net/${process.env.MONGO_CLUSTER}?retryWrites=true&w=majority&appName=${process.env.MONGO_CLUSTER}`
 )
 // mongoDBConnection()
   //RUN SERVER ----------------------------------------//
