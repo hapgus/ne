@@ -21,14 +21,14 @@ exports.postSignin = (req, res, next) => {
 
     .then(user => {
       if (!user) {
-        return next(new HttpError('No user found.', 401));
+        return next(new HttpError('Email or password is incorrect.', 401));
       }
 
       if (user.status !== "approved") {
         return next(new HttpError('Access denied! User is not approved.', 410))
       }
       loadedUser = user;
-      console.log(loadedUser)
+   
       return bcrypt.compare(password, user.password);
     })
     .then(isEqual => {
@@ -53,7 +53,7 @@ exports.postSignin = (req, res, next) => {
     })
     .then(() => {
       if (token) { // Only send the success response if a token was set
-        res.status(200).json({
+        res.status(202).json({
           token: token,
           message: 'success'
         });
@@ -81,7 +81,7 @@ exports.postSignin = (req, res, next) => {
 exports.postSignup = async (req, res, next) => {
  
     const { firstName, lastName, email, password, store } = req.body;
-
+console.log(req.body)
     const errors = validationResult(req);
 
  if (!errors.isEmpty()) {
@@ -124,7 +124,6 @@ exports.postSignup = async (req, res, next) => {
       token: token,
       userId: user._id,
       userEmail: user.email,
-      testPass:password
     });
 
     // res.status(201).json({ message: 'New user added.', });

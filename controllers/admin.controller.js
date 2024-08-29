@@ -12,7 +12,7 @@ const { validationResult } = require('express-validator');
 
 exports.addProduct = async (req, res, next) => {
 
-
+console.log(req.body)
     const file = req.files.find(f => f.fieldname === 'image');
     if (!file) {
         const error = new HttpError('No product image uploaded', 400);
@@ -117,7 +117,7 @@ exports.addProduct = async (req, res, next) => {
     try {
         // let productCreator = await UserModel.findById(creator);
         productCreator = await UserModel.findById(creator);
-
+console.log(productCreator)
         // console.log('terminator', productCreator)
         if (!productCreator || (productCreator.role !== 'admin' && productCreator.role !== 'superAdmin')) {
             return next(new HttpError('User does not have permission to add the product.', 403));
@@ -146,13 +146,12 @@ exports.updateProduct = async (req, res, next) => {
     try {
         updatedProduct = await ProductModel.findById(productId)
 
-
     } catch (err) {
         return next(new HttpError(
             `Something went wrong could not find the product - server ${err}`, 500
         ));
     }
-
+console.log('body',req.body)
     const {
         availability,
         category,
@@ -247,7 +246,7 @@ exports.updateProduct = async (req, res, next) => {
         // );
         // return next(error);
     }
-    res.status(200).json({
+    res.status(201).json({
         message: "Product updated",
         updatedProduct: updatedProduct
     })
@@ -489,7 +488,7 @@ exports.manageUser = async (req, res, next) => {
 
         await creator.save();
 
-        return res.status(200).json({ message: "User updated successfully.", userId: userToBeUpdated._id });
+        return res.status(202).json({ message: "User updated successfully.", userId: userToBeUpdated._id });
 
     } catch (err) {
         console.error(err);
