@@ -547,7 +547,7 @@ exports.getAdminUsers = async (req, res, next) => {
             return next(new HttpError('No admin users found.', 404));
         }
 
-        const usersToSend = users.map(user => {
+        const usersToSend = admins.map(user => {
             return {
                 firstName: user.firstName,
                 lastName: user.lastName,
