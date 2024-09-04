@@ -104,7 +104,9 @@ router.post('/add-admin', [
 
 router.get('/admin-users', adminController.getAdminUsers);
 router.get('/users', adminController.getUsers);
-// router.get('/data', Auth, Admin, adminController.data);
+// router.get('/data', 
+//     // Auth, Admin, 
+//     adminController.data);
 
 // router.get('/all-saved-lists', adminController.getAllSavedLists);
 

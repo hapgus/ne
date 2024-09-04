@@ -31,7 +31,8 @@ const productSchema = new Schema(
         sections:[{
             resourceTitle:{ type: String, required: false },
             resourceUrl:{ type: String, required: false },
-            resourceQrCodeImage:{ type: Array, required: false },
+            resourceQrCodeImage:{ type: String, required: false },
+            // resourceQrCodeImage:{ type: Array, required: false },
         }],
 
         creator: { type: Schema.Types.ObjectId, ref: 'User', required: false},

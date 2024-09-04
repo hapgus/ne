@@ -12,7 +12,7 @@ const { validationResult } = require('express-validator');
 
 exports.addProduct = async (req, res, next) => {
 
-console.log(req.body)
+    console.log(req.body)
     const file = req.files.find(f => f.fieldname === 'image');
     if (!file) {
         const error = new HttpError('No product image uploaded', 400);
@@ -117,7 +117,7 @@ console.log(req.body)
     try {
         // let productCreator = await UserModel.findById(creator);
         productCreator = await UserModel.findById(creator);
-console.log(productCreator)
+        console.log(productCreator)
         // console.log('terminator', productCreator)
         if (!productCreator || (productCreator.role !== 'admin' && productCreator.role !== 'superAdmin')) {
             return next(new HttpError('User does not have permission to add the product.', 403));
@@ -151,7 +151,7 @@ exports.updateProduct = async (req, res, next) => {
             `Something went wrong could not find the product - server ${err}`, 500
         ));
     }
-console.log('body',req.body)
+    console.log('body', req.body)
     const {
         availability,
         category,
@@ -167,7 +167,7 @@ console.log('body',req.body)
         specTitle3,
         specTitle4,
         specSheetLink,
-        specSheetQrcode,
+        // specSheetQrcode,
         store,
         stylecategory,
         subcategory,
@@ -179,40 +179,77 @@ console.log('body',req.body)
         creator
     } = req.body
 
-    if (req.files && req.files.image) {
-        imageURL = new URL(req.files.image[0].location);
-        image = imageURL.pathname.substring(1);
-    } else {
-        image = updatedProduct.image; // Get image URL from the existing product data
+    let image = updatedProduct.image;
+    
+    if (req.files && req.files.find(file => file.fieldname === 'image')) {
+        const newImageFile = req.files.find(file => file.fieldname === 'image');
+       
+        const imageURL = new URL(newImageFile.location);
+        
+        image = imageURL.pathname.substring(1); // Update to the new image path
+       
+    }
+    let qrcode = updatedProduct.qrcode;
+    if (req.files && req.files.find(file => file.fieldname === 'qrcode')) {
+        const newImageFile = req.files.find(file => file.fieldname === 'qrcode');
+       console.log('new file',newImageFile)
+        const imageURL = new URL(newImageFile.location);
+        console.log('new url',imageURL)
+        qrcode = imageURL.pathname.substring(1); // Update to the new image path
+        console.log('qrcode',qrcode)
+       
     }
 
-    if (req.files && req.files.qrcode) {
-        qrcodeURL = new URL(req.files.qrcode[0].location);
-        qrcode = qrcodeURL.pathname.substring(1);
-    } else {
-        qrcode = updatedProduct.qrcode; // Get image URL from the existing product data
-    }
+
+    // if (req.files && req.files.qrcode) {
+    //     qrcodeURL = new URL(req.files.qrcode[0].location);
+    //     qrcode = qrcodeURL.pathname.substring(1);
+    // } else {
+    //     qrcode = updatedProduct.qrcode; // Get image URL from the existing product data
+    // }
     let sections = [];
     if (req.body.sections) {
         sections = req.body.sections.map((section, index) => {
             // Find the corresponding QR code image for this section
             const sectionQrCodeFile = req.files.find(f => f.fieldname === `sections[${index}][resourceQrCodeImage]`);
-            let resourceQrCodeImage = null;
+            
+            let resourceQrCodeImage = section.resourceQrCodeImage; // Use existing image URL
 
             if (sectionQrCodeFile) {
                 const sectionQrCodeURL = new URL(sectionQrCodeFile.location);
-                resourceQrCodeImage = sectionQrCodeURL.pathname.substring(1);
+                resourceQrCodeImage = sectionQrCodeURL.pathname.substring(1); // Update to the new image path
             }
 
             // Return the section object with the QR code image path
             return {
                 ...section,
-                resourceQrCodeImage, // Add the QR code image path to the section
+                resourceQrCodeImage // Add the QR code image path to the section
             };
         });
     }
+
+    // if (req.body.sections) {
+    //     sections = req.body.sections.map((section, index) => {
+    //         // Find the corresponding QR code image for this section
+    //         const sectionQrCodeFile = req.files.find(f => f.fieldname === `sections[${index}][resourceQrCodeImage]`);
+    //         let resourceQrCodeImage = null;
+
+    //         if (sectionQrCodeFile) {
+    //             const sectionQrCodeURL = new URL(sectionQrCodeFile.location);
+    //             resourceQrCodeImage = sectionQrCodeURL.pathname.substring(1);
+    //         }
+
+    //         // Return the section object with the QR code image path
+    //         return {
+    //             ...section,
+    //             resourceQrCodeImage, // Add the QR code image path to the section
+    //         };
+    //     });
+    // }
     updatedProduct.sections = sections;
     updatedProduct.title = title;
+    updatedProduct.image = image;
+    updatedProduct.qrcode = qrcode;
     updatedProduct.subtitle = subtitle;
     updatedProduct.category = category;
     updatedProduct.subcategory = subcategory;
@@ -233,7 +270,7 @@ console.log('body',req.body)
     updatedProduct.specTitle3 = specTitle3;
     updatedProduct.specTitle4 = specTitle4;
     updatedProduct.specSheetLink = specSheetLink;
-    updatedProduct.specSheetQrcode = specSheetQrcode;
+    // updatedProduct.specSheetQrcode = specSheetQrcode;
 
     console.log(updatedProduct)
     try {
@@ -253,7 +290,7 @@ console.log('body',req.body)
 
 }
 exports.deleteProduct = async (req, res, next) => {
-    
+
     const productId = req.params.productId;
     const terminatorId = req.body.adminId;
 
@@ -503,12 +540,12 @@ exports.getAdminUsers = async (req, res, next) => {
         return next(new HttpError(errors.array()[0].msg, 422));
     }
     try {
-       // Query MongoDB directly for admin or superadmin users
-       const admins = await UserModel.find({ role: { $in: ['admin', 'superAdmin'] } });
+        // Query MongoDB directly for admin or superadmin users
+        const admins = await UserModel.find({ role: { $in: ['admin', 'superAdmin'] } });
 
-       if (!admins || admins.length === 0) {
-           return next(new HttpError('No admin users found.', 404));
-       }
+        if (!admins || admins.length === 0) {
+            return next(new HttpError('No admin users found.', 404));
+        }
 
         return res.status(200).json({
             users: admins,
@@ -526,14 +563,26 @@ exports.getUsers = async (req, res, next) => {
         return next(new HttpError(errors.array()[0].msg, 422));
     }
     try {
-      
+
         const users = await UserModel.find({ role: { $in: ['user'] } });
 
         if (!users) {
             return next(new HttpError('No users found.', 404))
         }
+
+        const usersToSend = {
+            firstName:users.firstName,
+            lastName:users.lastName,
+            email:users.email,
+            store:users.store,
+            role:users.role,
+            status:users.status,
+            joined:users.createdAt,
+            updated:users.updatedAt
+        }
+
         return res.status(200).json({
-            users: users,
+            users: usersToSend,
             message: 'All users - server'
         })
 
@@ -584,6 +633,31 @@ exports.getUser = async (req, res, next) => {
 //     }
 // }
 
+// exports.data = async (req, res, next) => {
+//     // try {
+//     //     const data = await readCache();
+//     //     if (data) {
+//     //         res.json(data);
+//     //     } else {
+//     //         res.status(404).json({ message: "Data not found" });
+//     //     }
+//     // } catch (error) {
+//     //     res.status(500).json({ message: "Server error occurred" });
+//     //     next(error);
+//     // }
+//     const errors = validationResult(req);
+//     if (!errors.isEmpty()) {
+//         return next(new HttpError(errors.array()[0].msg, 422));
+//     }
+//     try {
+//         const data = await getFromS3('dataCache.json');
+//         res.json(JSON.parse(data));
+//     } catch (error) {
+//         console.error("Error fetching data:", error);
+//         // res.status(500).json({ error: 'Internal Server Error' });
+//         return next(new HttpError('Something went wrong' + err, 500));
+//     }
+// }
 
 
 

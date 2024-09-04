@@ -14,6 +14,9 @@ const s3 = new S3Client({
 
 
 
+
+
+
 // Set up Multer with S3 storage
 
 const upload = multer({
@@ -37,7 +40,13 @@ const upload = multer({
             const originalFileName = path.basename(file.originalname);
 
             // Construct the full S3 object key (folder + file name)
-            cb(null, `${folder}${originalFileName}`);
+            const s3ObjectKey = `${folder}${originalFileName}`;
+
+            // Log the S3 object key to verify
+            console.log('Generated S3 object key:', s3ObjectKey);
+
+            // Pass the constructed key to S3 for file storage
+            cb(null, s3ObjectKey);
         }
     })
 });
