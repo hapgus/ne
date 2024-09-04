@@ -556,6 +556,7 @@ exports.getAdminUsers = async (req, res, next) => {
                 status: user.status,
                 joined: user.createdAt,
                 updated: user.updatedAt,
+                userId:user._id,
 
                 productsCreated: user.productsCreated.length,
                 productsUpdated: user.productsUpdated.length,
@@ -599,10 +600,12 @@ exports.getUsers = async (req, res, next) => {
                 role: user.role,
                 status: user.status,
                 joined: user.createdAt,
-                updated: user.updatedAt
+                updated: user.updatedAt,
+                userId:user._id
             }
+            
         })
-
+console.log(usersToSend.userId)
         return res.status(200).json({
             users: usersToSend,
             message: 'All users - server'
@@ -617,6 +620,7 @@ exports.getUsers = async (req, res, next) => {
 exports.getUser = async (req, res, next) => {
     const userAccountId = req.params.userId;
     const errors = validationResult(req);
+    console.log('uid',userAccountId)
     if (!errors.isEmpty()) {
         return next(new HttpError(errors.array()[0].msg, 422));
     }
