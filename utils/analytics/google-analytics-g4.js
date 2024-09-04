@@ -2,12 +2,11 @@ const { google } = require("googleapis");
 const analyticsData = google.analyticsdata('v1beta');
 
 const scopes = "https://www.googleapis.com/auth/analytics.readonly";
-const GA4_PROPERTY_ID = "454361342"; // Replace this with your GA4 property ID
+const GA4_PROPERTY_ID = "454361342";
 
 const googleJWT = new google.auth.JWT(
   process.env.CLIENT_EMAIL,
   null,
-  // process.env.PRIVATE_KEY,
   process.env.PRIVATE_KEY.replace(/\\n/g, '\n'),
   scopes
 );

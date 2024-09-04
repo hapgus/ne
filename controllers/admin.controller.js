@@ -180,24 +180,24 @@ exports.updateProduct = async (req, res, next) => {
     } = req.body
 
     let image = updatedProduct.image;
-    
+
     if (req.files && req.files.find(file => file.fieldname === 'image')) {
         const newImageFile = req.files.find(file => file.fieldname === 'image');
-       
+
         const imageURL = new URL(newImageFile.location);
-        
+
         image = imageURL.pathname.substring(1); // Update to the new image path
-       
+
     }
     let qrcode = updatedProduct.qrcode;
     if (req.files && req.files.find(file => file.fieldname === 'qrcode')) {
         const newImageFile = req.files.find(file => file.fieldname === 'qrcode');
-       console.log('new file',newImageFile)
+        console.log('new file', newImageFile)
         const imageURL = new URL(newImageFile.location);
-        console.log('new url',imageURL)
+        console.log('new url', imageURL)
         qrcode = imageURL.pathname.substring(1); // Update to the new image path
-        console.log('qrcode',qrcode)
-       
+        console.log('qrcode', qrcode)
+
     }
 
 
@@ -212,7 +212,7 @@ exports.updateProduct = async (req, res, next) => {
         sections = req.body.sections.map((section, index) => {
             // Find the corresponding QR code image for this section
             const sectionQrCodeFile = req.files.find(f => f.fieldname === `sections[${index}][resourceQrCodeImage]`);
-            
+
             let resourceQrCodeImage = section.resourceQrCodeImage; // Use existing image URL
 
             if (sectionQrCodeFile) {
@@ -570,16 +570,19 @@ exports.getUsers = async (req, res, next) => {
             return next(new HttpError('No users found.', 404))
         }
 
-        const usersToSend = {
-            firstName:users.firstName,
-            lastName:users.lastName,
-            email:users.email,
-            store:users.store,
-            role:users.role,
-            status:users.status,
-            joined:users.createdAt,
-            updated:users.updatedAt
-        }
+
+        const usersToSend = users.map(user => {
+            return {
+                firstName: user.firstName,
+                lastName: user.lastName,
+                email: user.email,
+                store: user.store,
+                role: user.role,
+                status: user.status,
+                joined: user.createdAt,
+                updated: user.updatedAt
+            }
+        })
 
         return res.status(200).json({
             users: usersToSend,
