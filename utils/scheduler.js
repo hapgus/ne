@@ -5,7 +5,8 @@ const { writeCache } = require('../utils/cache');
 // Function to initiate scheduled tasks
 function startScheduledTasks() {
     // cron.schedule('*/30 * * * *', async () => {
-    // cron.schedule('*/30 * * * *', async () => {
+
+
         cron.schedule('*/1 * * * *', async () => {
         try {
             console.log('Fetching data for caching...');
