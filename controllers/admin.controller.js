@@ -9,16 +9,36 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const UserModel = require('../models/user.model');
 const { validationResult } = require('express-validator');
+const {getFromS3} = require('../middleware/data-upload')
+
+const sgMail = require('@sendgrid/mail');
+
+sgMail.setApiKey(process.env.SENDGRID_API_KEYS);  
 
 exports.addProduct = async (req, res, next) => {
 
     console.log(req.body)
+    // const errors = validationResult(req);
+
+    // if (!errors.isEmpty()) {
+    //     return next(new HttpError(errors.array()[0].msg, 422));
+    // }
+
+
+    // const imageFile = req.files.find(f => f.fieldname === 'image');
+    // let image = null;
+
+    // if (imageFile) {
+    //     const imageURL = new URL(file.location);
+    //     image = imageURL.pathname.substring(1);
+    // }
+
+
     const file = req.files.find(f => f.fieldname === 'image');
     if (!file) {
         const error = new HttpError('No product image uploaded', 400);
         return next(error);
     }
-
     const imageURL = new URL(file.location);
     const image = imageURL.pathname.substring(1);
 
@@ -82,6 +102,7 @@ exports.addProduct = async (req, res, next) => {
     if (!errors.isEmpty()) {
         return next(new HttpError(errors.array()[0].msg, 422));
     }
+    console.log(errors)
 
     const newProduct = new ProductModel({
         availability,
@@ -138,6 +159,8 @@ exports.addProduct = async (req, res, next) => {
         return next(new HttpError('Creating the product failed!' + err.message, 500));
     }
 }
+
+
 exports.updateProduct = async (req, res, next) => {
 
     const productId = req.params.productId;
@@ -289,6 +312,192 @@ exports.updateProduct = async (req, res, next) => {
     })
 
 }
+
+exports.copyProduct = async (req, res, next) => {
+    console.log('BODY',req.body)
+
+    const {
+        availability,
+        category,
+        colors,
+        logos,
+        msrp,
+        specList1,
+        specList2,
+        specList3,
+        specList4,
+        specTitle1,
+        specTitle2,
+        specTitle3,
+        specTitle4,
+        specSheetLink,
+        specSheetQrcode,
+        store,
+        stylecategory,
+        subcategory,
+        subtitle,
+        title,
+        upc,
+        videos,
+        sections: incomingSections,
+        creator
+    } = req.body
+
+    // console.log(req.body)
+    // const errors = validationResult(req);
+    // if (!errors.isEmpty()) {
+    //     return next(new HttpError(errors.array()[0].msg, 422));
+    // }
+
+    // let image = req.body.image;
+
+    // if (req.files && req.files.find(file => file.fieldname === 'image')) {
+    //     const newImageFile = req.files.find(file => file.fieldname === 'image');
+
+    //     const imageURL = new URL(newImageFile.location);
+
+    //     image = imageURL.pathname.substring(1); // Update to the new image path
+
+    // }
+    // let qrcode = req.body.image;
+    // if (req.files && req.files.find(file => file.fieldname === 'qrcode')) {
+    //     const newImageFile = req.files.find(file => file.fieldname === 'qrcode');
+    //     console.log('new file', newImageFile)
+    //     const imageURL = new URL(newImageFile.location);
+    //     console.log('new url', imageURL)
+    //     qrcode = imageURL.pathname.substring(1); // Update to the new image path
+    //     console.log('qrcode', qrcode)
+
+    // }
+
+
+  
+    // let sections = [];
+    // if (req.body.sections) {
+    //     sections = req.body.sections.map((section, index) => {
+    //         // Find the corresponding QR code image for this section
+    //         const sectionQrCodeFile = req.files.find(f => f.fieldname === `sections[${index}][resourceQrCodeImage]`);
+
+    //         let resourceQrCodeImage = section.resourceQrCodeImage; // Use existing image URL
+
+    //         if (sectionQrCodeFile) {
+    //             const sectionQrCodeURL = new URL(sectionQrCodeFile.location);
+    //             resourceQrCodeImage = sectionQrCodeURL.pathname.substring(1); // Update to the new image path
+    //         }
+
+    //         // Return the section object with the QR code image path
+    //         return {
+    //             ...section,
+    //             resourceQrCodeImage // Add the QR code image path to the section
+    //         };
+    //     });
+    // }
+     // 1. Handle the main product image
+     let image = req.body.image; // Use existing image if provided
+     console.log('image', image)
+
+     if (req.files && req.files.find(file => file.fieldname === 'image')) {
+       const newImageFile = req.files.find(file => file.fieldname === 'image');
+       console.log('new image', newImageFile)
+       const imageURL = new URL(newImageFile.location);
+       console.log('new url', imageURL)
+       image = imageURL.pathname.substring(1); // Replace with new image if uploaded
+       console.log('new image replacement', image)
+     }
+ 
+     // 2. Handle the QR code (if exists)
+     let qrcode = req.body.qrcode; // Use existing QR code if provided
+ 
+     if (req.files && req.files.find(file => file.fieldname === 'qrcode')) {
+       const newQrCodeFile = req.files.find(file => file.fieldname === 'qrcode');
+       const qrCodeURL = new URL(newQrCodeFile.location);
+       qrcode = qrCodeURL.pathname.substring(1); // Replace with new QR code if uploaded
+     }
+ 
+     // 3. Handle sections, including images (QR codes) within sections
+     let sections = [];
+     if (incomingSections) {
+       sections = incomingSections.map((section, index) => {
+         // Use the existing section image (if provided) or update if a new file is uploaded
+         let resourceQrCodeImage = section.resourceQrCodeImage;
+ 
+         const sectionQrCodeFile = req.files.find(f => f.fieldname === `sections[${index}][resourceQrCodeImage]`);
+         if (sectionQrCodeFile) {
+           const sectionQrCodeURL = new URL(sectionQrCodeFile.location);
+           resourceQrCodeImage = sectionQrCodeURL.pathname.substring(1); // Update with new QR code
+         }
+ 
+         // Return the updated section object
+         return {
+           ...section,
+           resourceQrCodeImage
+         };
+       });
+     }
+ 
+    
+    console.log({'OBJECTS image':image,'OBJECTS qrcode':qrcode,'OBJECTS sections':sections})
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        return next(new HttpError(errors.array()[0].msg, 422));
+    }
+    console.log(errors)
+
+    const newProduct = new ProductModel({
+        availability,
+        category,
+        colors,
+        logos,
+        msrp,
+        specList1,
+        specList2,
+        specList3,
+        specList4,
+        specTitle1,
+        specTitle2,
+        specTitle3,
+        specTitle4,
+        specSheetLink,
+        specSheetQrcode,
+        store,
+        stylecategory,
+        subcategory,
+        subtitle,
+        title,
+        upc,
+        videos,
+        sections,
+        image,
+        qrcode,
+        creator
+    })
+
+    let productCreator;
+
+    try {
+        // let productCreator = await UserModel.findById(creator);
+        productCreator = await UserModel.findById(creator);
+        console.log(productCreator)
+        // console.log('terminator', productCreator)
+        if (!productCreator || (productCreator.role !== 'admin' && productCreator.role !== 'superAdmin')) {
+            return next(new HttpError('User does not have permission to add the product.', 403));
+        }
+
+        await newProduct.save()
+        productCreator.productsCreated.push({
+            product: newProduct._id,  // reference to the product created
+            createdAt: new Date(), // current date
+            productName: newProduct.title // product name or any field in the product schema
+        });
+        await productCreator.save();
+        res.status(201).json({
+            message: 'Product added',
+            product: newProduct
+        });
+    } catch (err) {
+        return next(new HttpError('Creating the product failed!' + err.message, 500));
+    }
+}
 exports.deleteProduct = async (req, res, next) => {
 
     const productId = req.params.productId;
@@ -342,7 +551,6 @@ exports.deleteProduct = async (req, res, next) => {
     }
     return res.status(200).json({ message: "Product deleted" });
 }
-
 exports.addAdmin = async (req, res, next) => {
     const { firstName, lastName, email, password, role, creator } = req.body;
 
@@ -350,6 +558,7 @@ exports.addAdmin = async (req, res, next) => {
     if (!errors.isEmpty()) {
         return next(new HttpError(errors.array()[0].msg, 422));
     }
+
     const status = "approved";
     let hashedPassword;
 
@@ -358,6 +567,7 @@ exports.addAdmin = async (req, res, next) => {
     } catch (err) {
         return next(new HttpError('Password hashing failed, please try again later.', 500));
     }
+
     const user = new UserModel({
         firstName: firstName,
         lastName: lastName,
@@ -374,94 +584,131 @@ exports.addAdmin = async (req, res, next) => {
         if (!creatorUser) {
             throw new HttpError('Creator user not found', 404);
         }
-        creatorUser.usersCreated.push(
-            {
-                user: user._id,
-                name: `${user.firstName} ${user.lastName}`,
-                email: user.email
-            }
-        );
+        creatorUser.usersCreated.push({
+            user: user._id,
+            name: `${user.firstName} ${user.lastName}`,
+            email: user.email
+        });
         await creatorUser.save();
 
     } catch (err) {
         return next(new HttpError('Saving user or updating creator failed, please try again later.' + err, 500));
     }
-    // try {
-    //     await transporter.sendMail({
-    //         to: email,
-    //         from: 'info@suitedforweb.com',
-    //         subject: 'Account confirmation',
-    //         html: `
-    //         <div
-    //         style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #F6F3EB; display: flex; flex-direction: column; align-items: flex-start; border-radius:16px;">
-    //         <div styles="display: flex; align-items: center;">
-    //             <div style="height: 150px; padding-left: 20px; display: flex; justify-content: center;">
-    //                 <img src="${process.env.LOGO_IMAGE_PATH}"
-    //                     style="height: 100%;  display:flex; width: 100%; object-fit: contain;" />
-    //             </div>
-    //         </div>
-    //         <div
-    //             style="height: inherit; background-color: white; padding:25px; margin: 0px 50px 50px 50px;  border-radius:16px; ">
-    //             <div style="padding: 5px 0 10px 0;">
-    //                 <div >
-    //                     <!-- <p style="font-size: 14px;  color: #716F6A;">Hello ${firstName},</p> -->
-    //                     <h1 style="font-size: 24px; color: #716F6A; margin-bottom: 20px;">
-    //                         Product Guide Admin Account
-    //                     </h1>
-    //                 </div>
-    //                 <div style="display: flex; flex-direction: column; row-gap: 10px; ">
-    //                     <p style="font-size: 14px; color: #716F6A; line-height: 1.7;">
-    //                         Your admin account is now active. You can now login.
-    //                         <!-- Your account registration is currently being processed, and once approved, you will receive an email notification. This email will confirm that your account is active and ready for you to dive into the full potential of our Product Guide.  If you have any questions or need assistance, please don't hesitate to reach out to our support team at lgproductguide@gmail.com. We're here to help! -->
-    //                     </p>
-    //                     <p style="font-size: 14px; color: #716F6A; line-height: 1.7;">
-    //                         If you have any questions or need assistance, please don't hesitate to reach out to our support team
-    //                         at lgproductguide@gmail.com. We're here to help!
-    //                     </p>
-    //                 </div>
-    //                 <div>
-    //                     <p style="font-size: 14px; color: #716F6A">Thank you,</p>
-    //                     <p style="font-size: 14px; color: #716F6A; padding-top: 15px;">LG Training Team</p>
-    //                 </div>
-    //             </div>
-    //             <div style="border-top: 1px solid #D0CBC1; padding-top: 5px; margin-top: 5px;
-    //                     border-bottom: 1px solid #D0CBC1; padding-top: 5px; margin-top: 5px; margin-bottom: 10px;">
-    //                 <p style="font-size: 12px; color:#D0CBC1;">This message was sent from LG Home Appliances Product Guide.</p>
-    //             </div>
-    //             <div style="padding: 5px 0 10px 0;">
-    //                 <div>
-    //                     <!-- <p style="font-size: 14px;  color: #716F6A;">Hello ${firstName},</p> -->
-    //                     <h1 style="font-size: 24px; color: #716F6A; margin-bottom: 20px;">
-    //                         Guide produit Compte administrateur
-    //                     </h1>
-    //                 </div>
-    //                 <div style="display: flex; flex-direction: column; row-gap: 10px; ">
-    //                     <p style="font-size: 14px; color: #716F6A; line-height: 1.7;">
-    //                         Votre compte administrateur est maintenant actif. Vous pouvez maintenant vous connecter.
-    //                     </p>
-    //                     <p style="font-size: 14px; color: #716F6A; line-height: 1.7;">
-    //                         Si vous avez des questions ou avez besoin d'aide, n'hésitez pas à contacter notre équipe
-    //                         d'assistance
-    //                         à lgproductguide@gmail.com. Nous sommes là pour vous aider !
-    //                     </p>
-    //                 </div>
-    //                 <div>
-    //                     <p style="font-size: 14px; color: #716F6A">Merci,</p>
-    //                     <p style="font-size: 14px; color: #716F6A; padding-top: 15px;">Équipe de formation LG</p>
-    //                 </div>
-    //             </div>
-    //             <div style="border-top: 1px solid #D0CBC1; padding-top: 5px; margin-top: 5px;
-    //                     border-bottom: 1px solid #D0CBC1; padding-top: 5px; margin-top: 5px; margin-bottom: 10px;">
-    //                 <p style="font-size: 12px; color:#D0CBC1;">Ce message a été envoyé à partir du Guide des produits LG Home Appliances.</p>
-    //             </div>
-    //         </div>
 
-    //     </div>`
+    // Send confirmation email using SendGrid
+    const msg = {
+        to: email,
+        from: 'productguide@teamlg.ca',  // Your verified sender email
+        subject: 'Admin Account Confirmation',
+        html: `
+            <!DOCTYPE html>
+            <html lang="en">
+              <head>
+                <meta charset="UTF-8" />
+                <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+                <title>Admin Account Confirmation</title>
+              </head>
+              <body
+                style="font-family: Arial, sans-serif; background-color: #f6f3eb; margin: 0; padding: 0;"
+              >
+                <table
+                  role="presentation"
+                  cellspacing="0"
+                  cellpadding="0"
+                  border="0"
+                  width="100%"
+                  style="max-width: 600px; margin: 0 auto; background-color: #f6f3eb;"
+                >
+                  <tr>
+                    <td style="padding: 20px;">
+                      <!-- LOGO SECTION -->
+                      <table
+                        role="presentation"
+                        cellspacing="0"
+                        cellpadding="0"
+                        border="0"
+                        width="100%"
+                      >
+                        <tr>
+                          <td align="center" style="padding-bottom: 20px;">
+                            <img
+                              src="${process.env.LOGO_IMAGE_PATH}"
+                              alt="LG Logo"
+                              width="150"
+                              style="display: block; height: auto;"
+                            />
+                          </td>
+                        </tr>
+                      </table>
 
-    //     });
-    // } catch (err) {
-    //     console.error('Sending confirmation email failed: ', err);
-    // }
+                      <!-- MAIN CONTENT -->
+                      <table
+                        role="presentation"
+                        cellspacing="0"
+                        cellpadding="0"
+                        border="0"
+                        width="100%"
+                        style="background-color: #ffffff; padding: 25px; border-radius: 8px;"
+                      >
+                        <tr>
+                          <td>
+                            <h1
+                              style="font-size: 24px; color: #716f6a; margin-bottom: 20px;"
+                            >
+                              Admin Account Confirmation
+                            </h1>
+                            <p
+                              style="font-size: 16px; color: #716f6a; line-height: 1.6; margin-bottom: 20px;"
+                            >
+                              Your admin account has been created. You can now log in using your credentials.
+                            </p>
+                            <p
+                              style="font-size: 16px; color: #716f6a; line-height: 1.6; margin-bottom: 20px;"
+                            >
+                              If you have any questions, please reach out to our support
+                              team at <a href="mailto:lgproductguide@gmail.com">lgproductguide@gmail.com</a>.
+                            </p>
+                            <p style="font-size: 16px; color: #716f6a;">
+                              Thank you,
+                              <br />
+                              LG Training Team
+                            </p>
+                          </td>
+                        </tr>
+                      </table>
+
+                      <!-- FOOTER -->
+                      <table
+                        role="presentation"
+                        cellspacing="0"
+                        cellpadding="0"
+                        border="0"
+                        width="100%"
+                        style="padding-top: 10px; border-top: 1px solid #d0cbc1; margin-top: 20px;"
+                      >
+                        <tr>
+                          <td align="center" style="padding: 10px 0;">
+                            <p style="font-size: 12px; color: #d0cbc1;">
+                              This message was sent from LG Home Appliances Product Guide.
+                            </p>
+                          </td>
+                        </tr>
+                      </table>
+                    </td>
+                  </tr>
+                </table>
+              </body>
+            </html>
+        `,
+    };
+
+    try {
+        await sgMail.send(msg);  // Send the email using SendGrid
+        console.log('Admin confirmation email sent successfully.');
+    } catch (err) {
+        console.error('Error sending email:', err);
+        return next(new HttpError('Sending confirmation email failed.', 500));
+    }
 
     let token;
     try {
@@ -474,7 +721,7 @@ exports.addAdmin = async (req, res, next) => {
     }
 
     return res.status(201).json({
-        message: 'New user added.',
+        message: 'New admin added.',
         token: token,
         userId: user._id,
         userEmail: user.email,
@@ -482,6 +729,8 @@ exports.addAdmin = async (req, res, next) => {
         user: user,
     });
 };
+
+
 
 exports.manageUser = async (req, res, next) => {
     const userAccountId = req.params.userId;
@@ -511,6 +760,9 @@ exports.manageUser = async (req, res, next) => {
         if (userToBeUpdated.role !== role) updateFields.role = role;
         if (userToBeUpdated.status !== status) updateFields.status = status;
 
+        // Check if status change is from 'pending' to 'approved'
+        const sendApprovalEmail = userToBeUpdated.status === 'pending' && status === 'approved';
+
         if (Object.keys(updateFields).length === 0) {
             return res.status(400).json({ message: "User role or status is already set to this value." });
         }
@@ -524,6 +776,121 @@ exports.manageUser = async (req, res, next) => {
         });
 
         await creator.save();
+
+        // Send congratulatory email if status is changed to approved
+        if (sendApprovalEmail) {
+            const msg = {
+                to: userToBeUpdated.email,
+                from: 'productguide@teamlg.ca',  // Your verified sender email
+                subject: 'Congratulations! Your Account Has Been Approved',
+                html: `
+                    <!DOCTYPE html>
+                    <html lang="en">
+                      <head>
+                        <meta charset="UTF-8" />
+                        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+                        <title>Account Approved</title>
+                      </head>
+                      <body
+                        style="font-family: Arial, sans-serif; background-color: #f6f3eb; margin: 0; padding: 0;"
+                      >
+                        <table
+                          role="presentation"
+                          cellspacing="0"
+                          cellpadding="0"
+                          border="0"
+                          width="100%"
+                          style="max-width: 600px; margin: 0 auto; background-color: #f6f3eb;"
+                        >
+                          <tr>
+                            <td style="padding: 20px;">
+                              <!-- LOGO SECTION -->
+                              <table
+                                role="presentation"
+                                cellspacing="0"
+                                cellpadding="0"
+                                border="0"
+                                width="100%"
+                              >
+                                <tr>
+                                  <td align="center" style="padding-bottom: 20px;">
+                                    <img
+                                      src="${process.env.LOGO_IMAGE_PATH}"
+                                      alt="LG Logo"
+                                      width="150"
+                                      style="display: block; height: auto;"
+                                    />
+                                  </td>
+                                </tr>
+                              </table>
+
+                              <!-- MAIN CONTENT -->
+                              <table
+                                role="presentation"
+                                cellspacing="0"
+                                cellpadding="0"
+                                border="0"
+                                width="100%"
+                                style="background-color: #ffffff; padding: 25px; border-radius: 8px;"
+                              >
+                                <tr>
+                                  <td>
+                                    <h1
+                                      style="font-size: 24px; color: #716f6a; margin-bottom: 20px;"
+                                    >
+                                      Congratulations! Your Account is Approved
+                                    </h1>
+                                    <p
+                                      style="font-size: 16px; color: #716f6a; line-height: 1.6; margin-bottom: 20px;"
+                                    >
+                                      We're excited to inform you that your account has been approved. You now have full access to the Product Guide!
+                                    </p>
+                                    <p
+                                      style="font-size: 16px; color: #716f6a; line-height: 1.6; margin-bottom: 20px;"
+                                    >
+                                      If you have any questions, please reach out to our support team at <a href="mailto:lgproductguide@gmail.com">lgproductguide@gmail.com</a>.
+                                    </p>
+                                    <p style="font-size: 16px; color: #716f6a;">
+                                      Thank you,
+                                      <br />
+                                      LG Training Team
+                                    </p>
+                                  </td>
+                                </tr>
+                              </table>
+
+                              <!-- FOOTER -->
+                              <table
+                                role="presentation"
+                                cellspacing="0"
+                                cellpadding="0"
+                                border="0"
+                                width="100%"
+                                style="padding-top: 10px; border-top: 1px solid #d0cbc1; margin-top: 20px;"
+                              >
+                                <tr>
+                                  <td align="center" style="padding: 10px 0;">
+                                    <p style="font-size: 12px; color: #d0cbc1;">
+                                      This message was sent from LG Home Appliances Product Guide.
+                                    </p>
+                                  </td>
+                                </tr>
+                              </table>
+                            </td>
+                          </tr>
+                        </table>
+                      </body>
+                    </html>
+                `,
+            };
+
+            try {
+                await sgMail.send(msg);
+                console.log('Approval email sent successfully.');
+            } catch (err) {
+                console.error('Error sending email:', err);
+            }
+        }
 
         return res.status(202).json({ message: "User updated successfully.", userId: userToBeUpdated._id });
 
@@ -556,14 +923,14 @@ exports.getAdminUsers = async (req, res, next) => {
                 status: user.status,
                 joined: user.createdAt,
                 updated: user.updatedAt,
-                userId:user._id,
+                userId: user._id,
 
                 productsCreated: user.productsCreated.length,
                 productsUpdated: user.productsUpdated.length,
                 productsDeleted: user.productsDeleted.length,
-                usersCreated:user.usersCreated.length,
-                usersUpdated:user.usersUpdated.length,
-                usersDeleted:user.usersDeleted.length,
+                usersCreated: user.usersCreated.length,
+                usersUpdated: user.usersUpdated.length,
+                usersDeleted: user.usersDeleted.length,
             }
         })
 
@@ -601,11 +968,11 @@ exports.getUsers = async (req, res, next) => {
                 status: user.status,
                 joined: user.createdAt,
                 updated: user.updatedAt,
-                userId:user._id
+                userId: user._id
             }
-            
+
         })
-console.log(usersToSend.userId)
+        console.log(usersToSend.userId)
         return res.status(200).json({
             users: usersToSend,
             message: 'All users - server'
@@ -620,7 +987,7 @@ console.log(usersToSend.userId)
 exports.getUser = async (req, res, next) => {
     const userAccountId = req.params.userId;
     const errors = validationResult(req);
-    console.log('uid',userAccountId)
+
     if (!errors.isEmpty()) {
         return next(new HttpError(errors.array()[0].msg, 422));
     }
@@ -640,50 +1007,6 @@ exports.getUser = async (req, res, next) => {
     }
 }
 
-
-// exports.addProduct = async (req, res, next) => {
-
-//     const { creator } = req.body
-
-//     console.log(req.body)
-
-//     try {
-//         res.status(201).json({
-//             message: `Creator is ${creator} `,
-
-//         });
-
-//     } catch (err) {
-
-//         return next(new HttpError('Creating the product failed!' + err.message, 500));
-//     }
-// }
-
-// exports.data = async (req, res, next) => {
-//     // try {
-//     //     const data = await readCache();
-//     //     if (data) {
-//     //         res.json(data);
-//     //     } else {
-//     //         res.status(404).json({ message: "Data not found" });
-//     //     }
-//     // } catch (error) {
-//     //     res.status(500).json({ message: "Server error occurred" });
-//     //     next(error);
-//     // }
-//     const errors = validationResult(req);
-//     if (!errors.isEmpty()) {
-//         return next(new HttpError(errors.array()[0].msg, 422));
-//     }
-//     try {
-//         const data = await getFromS3('dataCache.json');
-//         res.json(JSON.parse(data));
-//     } catch (error) {
-//         console.error("Error fetching data:", error);
-//         // res.status(500).json({ error: 'Internal Server Error' });
-//         return next(new HttpError('Something went wrong' + err, 500));
-//     }
-// }
 
 
 
@@ -895,3 +1218,60 @@ exports.updateUserStatus = async (req, res, next) => {
 }
 
 
+
+exports.data = async (req, res, next) => {
+    console.log(req)
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        return next(new HttpError(errors.array()[0].msg, 422));
+    }
+    try {
+        const data = await getFromS3('dataCache.json');
+        res.json(JSON.parse(data));
+    } catch (error) {
+        console.error("Error fetching data:", error);
+        // res.status(500).json({ error: 'Internal Server Error' });
+        return next(new HttpError('Something went wrong' + error, 500));
+    }
+}
+
+
+
+exports.postPasswordReset = async (req, res, next) => {
+  const email = req.body.email;
+  const resetToken = crypto.randomBytes(32).toString('hex');
+
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return next(new HttpError(errors.array()[0].msg, 422));
+  }
+
+  try {
+    const user = await UserModel.findOne({ email });
+    if (!user) {
+      return next(new HttpError("No user found with this email.", 404));
+    }
+
+    user.resetToken = resetToken;
+    user.resetTokenExpiration = Date.now() + 3600000; // 1hr
+    await user.save();
+
+    const msg = {
+      to: email,
+      from: 'productguide@teamlg.ca', // Verified sender
+      subject: 'Password Reset',
+      html: `
+      <div> 
+        <!-- Your HTML content here -->
+        <a href="https://lgproductguide.ca/reset/${resetToken}">Reset Password</a>
+      </div>`,
+    };
+
+    await sgMail.send(msg);
+    console.log('Mail sent successfully');
+    res.status(200).json({ message: 'Password reset email has been sent.' });
+
+  } catch (err) {
+    return next(new HttpError('Something went wrong - could not reset', 500));
+  }
+};

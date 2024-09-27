@@ -66,4 +66,22 @@ router.post('/signup', [
         }),
 ], authController.postSignup);
 
+// GET REQ RESET PASS VIA TOKEN
+// router.get('/reset/:token', authController.getNewPassword);
+
+// POST REQ EMAIL VIA USER TO GET PASSWORD RESET VIA EMAIL RESET PASS TOKEN
+router.post('/reset', [
+    body('email')
+        .isEmail()
+        .withMessage('Please use a valid email.'),
+
+], authController.postPasswordReset);
+
+// POST REQ NEW PASS CREATED BY USER
+// router.post('/new-password', [
+//     body('password', 'Please enter a password of at least 8 characters.')
+//         .trim().isLength({ min: 8 }).escape(),
+// ], authController.postNewPassword);
+
+
 module.exports = router;

@@ -10,7 +10,7 @@ const Auth = require('../middleware/auth');
 const Admin = require('../middleware/admin');
 const { check, body } = require('express-validator');
 const UserModel = require('../models/user.model');
-// const ProductModel = require('../models/product.model');
+const ProductModel = require('../models/product.model');
 const HttpError = require('../models/http-error');
 const upload = require('../middleware/file-upload')
 
@@ -18,37 +18,170 @@ const upload = require('../middleware/file-upload')
 // // router.use(Auth);
 
 router.post('/add-product', upload.any(),
-    // , Auth, Admin, [
-    // body('creator').trim().notEmpty().withMessage('Creator required.')
-    //     .custom(async (value) => {
-    //         try {
-    //             const foundCreator = await UserModel.findById(value);
-    //             if (!foundCreator) { throw new HttpError('Creator not found', 404) }
-    //             if (foundCreator.role !== 'superAdmin') { throw new HttpError('Invalid creator', 403) }
-    //         } catch (err) {throw new HttpError(err.message, err.statusCode)}
-    //     }),
-    // //SCREEN FOR DUPLICATE Title
-    // body('title').trim().notEmpty().withMessage('title cannot be empty')
-    //     .custom(async (value) => {
-    //         const foundProduct = await ProductModel.findOne({ title: value });
-    //         if (foundProduct) { throw new HttpError('Product with that title already exist.', 409) }
-    //     }),
-    // check('msrp')
-    //     .notEmpty().withMessage('MSRP required')
-    //     .isLength({ min: 0, max: 10 }).withMessage('MSRP must be between 0-10 characters.'),
-    // check('subtitle')
-    //     .notEmpty().withMessage('Subtitle required')
-    //     .isLength({ min: 8, max: 300 }).withMessage('English subtitle min 8 max 300 characters'),
-    // body('category')
-    //     .notEmpty().withMessage('Category required')
-    //     .isIn(['cooking', 'dishwashers', 'laundry', 'refrigeration', 'studio', 'signature, vacuums, air care'])
-    //     .withMessage('That category is not available.'),
-    // body('subcategory').notEmpty().withMessage('Subcategory required'),
-    // body('colour').trim().notEmpty().withMessage('Minimum 1 colour selection'),
-    // ], 
+    // Auth, Admin, 
+    [
+        body('creator').trim().notEmpty().withMessage('Creator required.')
+            .custom(async (value) => {
+                try {
+                    const foundCreator = await UserModel.findById(value);
+                    if (!foundCreator) { throw new HttpError('Creator not found', 404) }
+                    if (foundCreator.role !== 'superAdmin') { throw new HttpError('Invalid creator', 403) }
+                } catch (err) { throw new HttpError(err.message, err.statusCode) }
+            }),
+        //SCREEN FOR DUPLICATE Title
+        body('title').trim().notEmpty().withMessage('title cannot be empty')
+            .custom(async (value) => {
+                const foundProduct = await ProductModel.findOne({ title: value });
+                if (foundProduct) { throw new HttpError('Product with that title already exist.', 409) }
+            }),
+        // check('msrp')
+        //     .notEmpty().withMessage('MSRP required')
+        //     .isLength({ min: 0, max: 10 }).withMessage('MSRP must be between 0-10 characters.'),
+        check('subtitle')
+            .notEmpty().withMessage('Subtitle required')
+            .isLength({ min: 8, max: 300 }).withMessage('Subtitle min 8 max 300 characters'),
+        body('category')
+            .notEmpty().withMessage('Category required')
+            .isIn([
+                'cooking',
+                'dishwashers',
+                'laundry',
+                'refrigeration',
+                'studio',
+                'signature',
+                'vacuums',
+                'air care'
+            ])
+            .withMessage('That category is not available.'),
+        body('subcategory')
+            .notEmpty().withMessage('Subcategory required')
+            .isIn([
+                 // AIR CARE
+                 "air care",
+                // COOKING
+                "induction ranges", "gas ranges", "electric ranges", "dual fuel ranges", "built-in wall ovens", "built-in cooktops", "range hoods", "over-the-range microwaves", "countertop microwaves",
+                // LAUNDRY
+                "all-in-one", "washtower", "accessories", "specialty laundry", "front load washers", "top load washers", "front load dryers", "top load dryers", "stylers",
+                // REFRIGERATION
+                "4-door french door", "3-door french door", "under 33\" french door", "side-by-side", "bottom and top freezer", "single door",
+                // DISHWASHER
+                "pocket handle dishwashers", "towel bar handle dishwashers", "specialty dishwashers",
+                // VACUUMS
+                "vacuums",
+                //SIGNATURE
+                "laundry", "dishwashers","refrigeration", "range hoods", "accessories",
+                 //STUDIO
+                 "ranges", "refrigeration", "laundry", "dishwashers", "built-in wall ovens", "built-in cooktops", "range hoods", "microwaves", ,
+                // "air care",
+                // 'ranges', "built-in", "microwaves",
+                // "all-in-one", "washers", "dryers", "washtowers", "stylers", "accessories",
+                // "french door", "side-by-side", "top and bottom freezer", "single door",
+                // "dishwasher", "vacuum", "laundry", "refrigeration", "cooking", "stylers"
+            ])
+            .withMessage('That subcategory is not available.'),
+        // body('colour').trim().notEmpty().withMessage('Minimum 1 colour selection'),
+    ],
     adminController.addProduct);
 
-router.patch('/edit-product/:productId', upload.any(), adminController.updateProduct);
+router.patch('/edit-product/:productId', upload.any(),
+
+[
+    body('creator').trim().notEmpty().withMessage('Creator required.')
+    .custom(async (value) => {
+        try {
+            const foundCreator = await UserModel.findById(value);
+            if (!foundCreator) { throw new HttpError('Creator not found', 404) }
+            if (foundCreator.role !== 'superAdmin') { throw new HttpError('Invalid creator', 403) }
+        } catch (err) { throw new HttpError(err.message, err.statusCode) }
+    }),
+    body('title').trim().notEmpty().withMessage('title cannot be empty')
+            .custom(async (value) => {
+                const foundProduct = await ProductModel.findOne({ title: value });
+                if (foundProduct) { throw new HttpError('Product with that title already exist.', 409) }
+            }),
+],
+
+
+
+adminController.updateProduct);
+
+
+
+
+
+
+
+router.post('/copy-product', upload.any(),
+    // Auth, Admin, 
+    [
+        body('creator').trim().notEmpty().withMessage('Creator required.')
+            .custom(async (value) => {
+                try {
+                    const foundCreator = await UserModel.findById(value);
+                    if (!foundCreator) { throw new HttpError('Creator not found', 404) }
+                    if (foundCreator.role !== 'superAdmin') { throw new HttpError('Invalid creator', 403) }
+                } catch (err) { throw new HttpError(err.message, err.statusCode) }
+            }),
+        //SCREEN FOR DUPLICATE Title
+        body('title').trim().notEmpty().withMessage('title cannot be empty')
+            .custom(async (value) => {
+                const foundProduct = await ProductModel.findOne({ title: value });
+                if (foundProduct) { throw new HttpError('Product with that title already exist.', 409) }
+            }),
+        // check('msrp')
+        //     .notEmpty().withMessage('MSRP required')
+        //     .isLength({ min: 0, max: 10 }).withMessage('MSRP must be between 0-10 characters.'),
+        check('subtitle')
+            .notEmpty().withMessage('Subtitle required')
+            .isLength({ min: 8, max: 300 }).withMessage('English subtitle min 8 max 300 characters'),
+        body('category')
+            .notEmpty().withMessage('Category required')
+            .isIn([
+                'cooking',
+                'dishwashers',
+                'laundry',
+                'refrigeration',
+                'studio',
+                'signature',
+                'vacuums',
+                'air care'
+            ])
+            // .isIn(['cooking', 'dishwashers', 'laundry', 'refrigeration', 'studio', 'signature', 'vacuums', 'air care'])
+            .withMessage('That category is not available.'),
+        body('subcategory')
+            .notEmpty().withMessage('Subcategory required')
+            .isIn([
+                // AIR CARE
+                "air care",
+                // COOKING
+                "induction ranges", "gas ranges", "electric ranges", "dual fuel ranges", "built-in wall ovens", "built-in cooktops", "range hoods", "over-the-range microwaves", "countertop microwaves",
+                // LAUNDRY
+                "all-in-one", "washtower", "accessories", "specialty laundry", "front load washers", "top load washers", "front load dryers", "top load dryers", "stylers",
+                // REFRIGERATION
+                "4-door french door", "3-door french door", "under 33\" french door", "side-by-side", "bottom and top freezer", "single door",
+                // DISHWASHER
+                "pocket handle dishwashers", "towel bar handle dishwashers", "specialty dishwashers",
+                // VACUUMS
+                "vacuums",
+                //SIGNATURE
+                "laundry", "dishwashers","refrigeration", "range hoods", "accessories",
+                 //STUDIO
+                 "ranges", "refrigeration", "laundry", "dishwashers", "built-in wall ovens", "built-in cooktops", "range hoods", "microwaves", ,
+                // "air care",
+                // 'ranges', "built-in", "microwaves",
+                // "all-in-one", "washers", "dryers", "washtowers", "stylers", "accessories",
+                // "french door", "side-by-side", "top and bottom freezer", "single door",
+                // "dishwasher", "vacuum", "laundry", "refrigeration", "cooking", "stylers"
+            ])
+            .withMessage('That subcategory is not available.'),
+        // .isIn(["air care",
+        //     'ranges', "built-in", "microwaves",
+        //     "all-in-one", "washers", "dryers", "washtowers", "stylers", "accessories",
+        //     "french door", "side-by-side", "top and bottom freezer", "single door",
+        //     "dishwasher", "vacuum", "laundry", "refrigeration", "cooking", "stylers"]),
+        // body('colour').trim().notEmpty().withMessage('Minimum 1 colour selection'),
+    ],
+    adminController.copyProduct);
 
 router.delete('/delete-product/:productId',
     // Auth, Admin, 
@@ -104,9 +237,9 @@ router.post('/add-admin', [
 
 router.get('/admin-users', adminController.getAdminUsers);
 router.get('/users', adminController.getUsers);
-// router.get('/data', 
-//     // Auth, Admin, 
-//     adminController.data);
+router.get('/data',
+    // Auth, Admin, 
+    adminController.data);
 
 // router.get('/all-saved-lists', adminController.getAllSavedLists);
 

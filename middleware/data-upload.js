@@ -1,4 +1,4 @@
-const { S3Client } = require('@aws-sdk/client-s3');
+const { S3Client, PutObjectCommand, GetObjectCommand  } = require('@aws-sdk/client-s3');
 
 // Initialize the S3 client
 const s3 = new S3Client({
@@ -17,11 +17,13 @@ const uploadToS3 = async (file) => {
         Body: file.buffer
     };
 
+   
     try {
         console.log(`Uploading ${file.originalname} to S3...`);
-        const stored = await s3.upload(params).promise();
+        const command = new PutObjectCommand(params);
+        const result = await s3.send(command);  // Send the command to S3
         console.log(`Successfully uploaded ${file.originalname} to S3.`);
-        return stored.Location; // The URL of the uploaded file
+        return `https://${params.Bucket}.s3.amazonaws.com/${file.originalname}`;  // Return the URL of the uploaded file
     } catch (error) {
         console.error(`Error uploading ${file.originalname} to S3:`, error);
         throw error;
@@ -31,13 +33,21 @@ const uploadToS3 = async (file) => {
 //FETCH ANALYTICS
 async function getFromS3(filename) {
     const params = {
-        Bucket: process.env.S3_BUCKET,
-        Key: filename
+        Bucket: process.env.AWS_DATA_BUCKET_NAME, // Ensure this is the correct bucket name
+        Key: filename  // The file you're trying to get
     };
 
     try {
-        const data = await s3.getObject(params).promise();
-        return data.Body.toString('utf-8');
+        const command = new GetObjectCommand(params);
+        const data = await s3.send(command); // Get the object
+        const stream = data.Body;
+        const chunks = [];
+
+        for await (const chunk of stream) {
+            chunks.push(chunk);
+        }
+
+        return Buffer.concat(chunks).toString('utf-8'); // Convert buffer to string
     } catch (error) {
         console.error(`Error fetching ${filename} from S3:`, error);
         throw error;

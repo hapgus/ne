@@ -12,7 +12,7 @@ const { startScheduledTasks } = require('./utils/scheduler');
 // const { initializeAWS } = require('./utils/aws/AwsConfig');
 // const { mongoDBConnection } = require('./utils/mongodb/mongodb');
 // const ProductModel = require('./models/product.model');
-// const products = require('./data/PRODUCT_DATA.json');
+// const products = require('./data/PRODUCT_DATA_V2.json');
 
 const app = express();
 // Middleware to log all requests
@@ -72,7 +72,7 @@ mongoose.connect(
   .then(activateServer => {
     app.listen(process.env.PORT || 3005);
     // Start the scheduled tasks  
-    // startScheduledTasks();
+    startScheduledTasks();
   })
   .catch(err => {
     console.log('Could not connect!', err);
